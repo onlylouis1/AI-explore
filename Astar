@@ -1,0 +1,154 @@
+#include <iostream>
+#include <time.h>
+using namespace std;
+
+struct Snode
+{
+	int parent; 
+	int current[9];
+public:
+	void Trans(const int *d);
+};
+
+
+Snode OPEN[50000];
+int op = 0;
+Snode CLOSE[50000];
+int cp = 0;
+int result[50000][9];
+
+
+void Snode::Trans(const int *d)
+{
+    for(int i=0;i<9;++i)
+		current[i]=d[i];
+}
+
+int have_exist(Snode &node1,Snode &node2)                                       
+{
+	int flag=1;
+	for(int i=0;i<9;i++)
+	{
+		if(node1.current[i]!=node2.current[i]) flag=0;
+	}
+	return flag;
+}
+
+inline void swapn(int &a,int &b)
+{
+	int tmp=a;
+    a=b;
+    b=tmp;
+}
+
+int judge(Snode &node)                                                         
+{
+	int flag=1;
+	int g[9]={1,2,3,8,0,4,7,6,5};
+	for(int i=0;i<9;i++)
+	{
+		if(node.current[i]!=g[i])
+			flag=0;
+	}
+	return flag;
+}
+
+int Astar(const int *d)                                                      
+{
+	int step = 0;
+	int begin=0;                  
+	int node_number=1;            
+	static int dp[4]={-3,-1,1,3};
+    op=1;
+    cp=0;
+    OPEN[begin].Trans(d);
+	OPEN[begin].parent=-1;
+    while(op>0)
+	{
+		int i=0,zero,pos,j=0,k=0;
+        if(judge(OPEN[begin])==1)  
+		{
+			CLOSE[cp]=OPEN[begin];
+			while(begin!=-1) 
+			{
+               for(int i=0;i<9;i++)
+			   {
+				   result[j][i]=OPEN[begin].current[i];
+			   }
+			   j=j+1;
+			   begin=OPEN[begin].parent;
+			}
+			cout << "所走步数为：" << j-1 << endl;
+            return 1;
+		}
+       for(zero=0;zero<9;++zero)
+	   {
+		   if(OPEN[begin].current[zero]==0)
+           break;                       
+	   }
+       for(i=0;i<4;++i)
+	   {
+           if(zero==0&&(i==0||i==1))  continue;
+           if(zero==1&&i==0)         continue;
+           if(zero==2&&(i==0||i==2))  continue;
+           if(zero==3&&i==1)         continue;
+           if(zero==5&&i==2)         continue;
+           if(zero==6&&(i==1||i==3))  continue;
+           if(zero==7&&i==3)         continue;
+           if(zero==8&&(i==2||i==3))  continue;
+           pos=zero+dp[i];
+
+ 		   swapn(OPEN[begin].current[zero],OPEN[begin].current[pos]);
+           Snode child;
+           child.Trans(OPEN[begin].current);
+		   
+           for(j=0;j<cp;++j)
+		   {
+			   if(have_exist(CLOSE[j],child)==1)
+				   break;
+		   }
+           if(j==cp)                         
+		   {		   
+			   OPEN[op]=child;
+			   OPEN[op].parent=begin;
+			   op=op+1;
+	    	   node_number=node_number+1;
+		   }
+           swapn(OPEN[begin].current[zero],OPEN[begin].current[pos]); 
+	   }
+	   CLOSE[cp++]=OPEN[begin];
+	   begin=begin+1;
+	}
+    return 0;
+}
+int main(void)
+{
+	int k;
+	long start, end;
+	int current[9] = { 2,8,3,1,6,4,7,0,5 };
+	int target[9] = { 1,2,3,8,0,4,7,6,5 };
+	cout << "初始状态为：" << endl;
+	for (k = 0;k<9;k++)
+	{
+		cout << current[k] << " ";
+		if (k % 3 == 2) 
+			cout << endl;
+	}
+	cout << "目标状态为：" << endl;
+	for (k = 0;k<9;k++)
+	{
+		cout << target[k] << " ";
+
+		if (k % 3 == 2)  cout << endl;
+	}
+	start = clock();
+	if(Astar(current))
+	{
+		end = clock();
+		cout << "成功!" << endl;
+	}
+    else
+    cout<<"起始状态不能到达目标状态！\n";
+	system("pause");
+    return 0;
+}
