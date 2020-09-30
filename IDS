@@ -1,0 +1,230 @@
+#include<iostream>
+#include<string>
+#include<vector> 
+#include<time.h> 
+#include<algorithm>
+#include<utility>
+#include<stack>
+using namespace std;
+
+
+struct State{
+	State(){
+	}
+	State(const State &st){
+		for(int i=0;i<3;i++)
+			for(int j=0;j<3;j++)
+				matrix[i][j] = st.matrix[i][j];
+		zero_x=st.zero_x; zero_y=st.zero_y;
+		g=st.g;
+	//	f=st.f; g=st.g; h=st.h;
+		parent = st.parent;
+	}
+	~State(){
+		parent = NULL;
+	}
+	char matrix[3][3];
+	int zero_x,zero_y;
+	int g; 
+//	int f,g,h;
+	//int parent_idx; 
+	struct State* parent;
+//	friend bool operator < (const State &a,const State &b){
+//		if(a.f==b.f) return a.g<=b.g;  
+//		return a.f>=b.f;
+//	}
+};
+
+State start; //开始状态（开始节点） 
+State goal; //目标状态 
+
+
+string matrix2string(char a[3][3] ){
+	string s="";
+	for(int i=0;i<3;i++){
+		for(int j=0;j<3;j++){
+			s+=a[i][j];
+		}
+	}
+	return s;
+}
+
+void print_matrix(char a[3][3]){
+	for(int i=0;i<3;i++){
+		for(int j=0;j<3;j++){
+			cout<<a[i][j]<<" ";
+		}
+		cout<<endl;
+	}
+} 
+
+void find_blankTile(){
+	for(int i=0;i<3;i++){
+		for(int j=0;j<3;j++){
+			if(start.matrix[i][j]=='0'){
+				start.zero_x = i;
+				start.zero_y = j;
+				return;
+			}
+		}
+	}
+} 
+
+
+int move_x[4] = {-1,0,1,0};
+int move_y[4] = {0,1,0,-1};  
+stack<pair<State,int> > que;
+int node_num;
+stack<State> stack_path;
+int IDS(int max_depth){
+	//初始化start节点 
+	find_blankTile(); start.g=0; start.parent=NULL;
+	int depth=0; //深度 
+	que.push(make_pair(start,depth)); 
+	int curDepth,nextDepth;
+	node_num=0;
+	while(!que.empty()){
+		node_num++;
+		State *curState = new State(que.top().first);
+		curDepth = que.top().second;
+		que.pop();
+		if(matrix2string(curState->matrix)==matrix2string(goal.matrix)){
+			int step = curState->g;
+			while(!stack_path.empty()) stack_path.pop(); 
+			State* p = curState;
+			while(p!=NULL){
+				stack_path.push(*p);
+				p = p->parent;
+			} 
+			return step;
+		}
+		nextDepth = curDepth + 1;
+		if(nextDepth > max_depth) continue;
+		string curSeq = matrix2string(curState->matrix); 
+		for(int i=0;i<4;i++){
+			State* nextState = new State(*curState);
+			nextState->zero_x = curState->zero_x+move_x[i];
+			nextState->zero_y = curState->zero_y+move_y[i];
+			if(nextState->zero_x<0||nextState->zero_x>2
+				||nextState->zero_y<0||nextState->zero_y>2) continue;
+			nextState->matrix[nextState->zero_x][nextState->zero_y] = '0';
+			nextState->matrix[curState->zero_x][curState->zero_y] 
+				= curState->matrix[nextState->zero_x][nextState->zero_y];
+			if(curState->parent!=NULL)
+      {
+				if(matrix2string(nextState->matrix)==matrix2string(curState->parent->matrix))
+					continue;
+			} 
+			nextState->g += 1;
+			nextState->parent = curState;
+			que.push(make_pair(*nextState,nextDepth));	
+		}	
+	}
+	return -1;
+}
+
+
+void print_path(){
+    State* st;
+	cout<<"path: "<<endl;
+	while(!stack_path.empty()){
+		State*st = &stack_path.top();
+		print_matrix(st->matrix);
+		cout<<endl;
+		stack_path.pop();
+	}
+}
+
+bool check_if_solvable() 
+{  
+	string start_seq = matrix2string(start.matrix);
+	int cnt=0;
+	for(int i=0;i<9;i++){
+		if(start_seq[i]=='0') continue; 
+		for(int j=i-1;j>=0;j--){
+			if(start_seq[j]>start_seq[i]) cnt++;
+		}
+	}
+	if(cnt%2==0) return true;
+	return false;
+} 
+
+
+int myrandom (int i) { 
+	return rand()%i;
+}
+
+
+void randperm()
+{
+    vector<char> temp;
+    for (int i = 0; i < 9; ++i)	temp.push_back(i+'0');
+    random_shuffle(temp.begin(), temp.end(),myrandom);
+	for(int i=0;i<3;i++){
+		for(int j=0;j<3;j++){
+			start.matrix[i][j] = temp[i*3+j]; 
+		}
+	}
+}
+
+int main(){
+
+	char goal_matrix[3][3]={{'1','2','3'},{'4','5','6'},{'7','8','0'}}; 
+	for(int i=0;i<3;i++){
+		for(int j=0;j<3;j++){
+			goal.matrix[i][j] = goal_matrix[i][j];
+		}
+	}
+	/*
+
+	srand((int)time(0));  
+	clock_t startTime,endTime;
+	startTime = clock();
+
+	int T = 2; 
+	int solvable=0;
+	int node_extend=0;
+	for(int t=0;t<T;t++){
+		cout<<"******round ["<<t<<"]********"<<endl;
+		randperm();
+		print_matrix(start.matrix);
+		int max=50; 
+		if(check_if_solvable())
+    {
+			solvable++;
+			int d=1;
+			int step=-1; 
+			while(step==-1 && step<=max){
+				step = IDS(d++); 
+			}
+			cout<<"steps: "<<step<<endl;
+			cout<<"extend nodes:"<<node_num<<endl;
+			node_extend+=node_num; 
+		}else{
+			cout<<"No solution!"<<endl;
+		}	
+		cout<<endl;	
+		//print_path();	
+	}
+	endTime = clock();
+	cout<<"test case: "<<T<<"   solvable: "<<solvable<<"   unsolvable: "<<T-solvable<<endl;
+	cout<<endl<<"Everage time: "<<(double)(endTime-startTime)/(CLOCKS_PER_SEC*T)<<"s."<<endl;
+	cout<<"Everage nodes extended: "<<node_extend/solvable<<endl;
+	*/
+	
+//	char a[3][3]={{'1','3','8'},{'4','5','6'},{'7','2','0'}};
+	char a[3][3]={{'1','2','3'},{'4','6','0'},{'7','5','8'}};
+	for(int i=0;i<3;i++){
+		for(int j=0;j<3;j++){
+			start.matrix[i][j] = a[i][j];
+		}
+	}
+	clock_t startTime,endTime;
+	startTime = clock();
+	cout << "steps: " << IDS(15) << endl;
+	endTime = clock();
+	cout<<"node extended: "<<node_num<<endl; 
+	cout<<endl<<"time: "<<(double)(endTime-startTime)/CLOCKS_PER_SEC<<"s."<<endl;
+	print_path();
+	return 0;
+}
